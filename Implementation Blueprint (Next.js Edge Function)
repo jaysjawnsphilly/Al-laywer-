@@ -1,0 +1,27 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { generateText } from 'ai'; // Assuming Vercel AI SDK
+import { openai } from '@ai-sdk/openai';
+
+export async function POST(req: NextRequest) {
+  const { caseType, userQuery, jurisdictionContext } = await req.json();
+
+  // Pick prompt based on the determined field
+  let selectedSystemPrompt = '';
+  if (caseType === 'criminal') {
+    selectedSystemPrompt = CRIMINAL_SYSTEM_PROMPT; // Text from Section 1
+  } else if (caseType === 'family_divorce') {
+    selectedSystemPrompt = FAMILY_SYSTEM_PROMPT; // Text from Section 2
+  }
+
+  // Inject active jurisdictional parameters into the core prompt
+  const fullPrompt = `${selectedSystemPrompt}\n\nCONTROLLING JURISDICTION: ${jurisdictionContext}`;
+
+  const { text } = await generateText({
+    model: openai('gpt-4o'),
+    system: fullPrompt,
+    prompt: `Analyze the following client fact pattern:\n${userQuery}`,
+    temperature: 0.2, // Kept low for consistent, logical analysis
+  });
+
+  return NextResponse.json({ legalAnalysis: text });
+}
